@@ -7,7 +7,7 @@
     body { font-family: sans-serif; margin: 20px; }
     .container { max-width: 600px; margin: auto; }
     textarea { width: 100%; box-sizing: border-box; }
-    button { margin-top: 10px; padding: 8px 12px; }
+    button { margin-top: 5px; padding: 8px 12px; margin-bottom: 15px;}
     
     .guide-text {
       background-color: #f9f9f9;
@@ -39,10 +39,21 @@
     <textarea id="inputMML" rows="8" placeholder="여기에 MML을 붙여 넣으세요"></textarea>
     <button id="convertButton">Convert</button>
     <textarea id="outputMML" rows="8" readonly placeholder="변환 결과가 여기에 표시됩니다"></textarea>
+    <!-- 클립보드 복사 버튼 -->
+    <button id="copyButton">Copy to Clipboard</button>
   </div>
   
   <script>
-    
+    document.getElementById("copyButton").addEventListener("click", function() {
+      const outputText = document.getElementById("outputMML").value;
+      navigator.clipboard.writeText(outputText)
+        .then(() => {
+          alert("클립보드에 복사되었습니다!");
+        })
+        .catch(err => {
+          console.error("복사 실패: ", err);
+        });
+    });
     // NEW_DRUM_MAP: 절대음 → 로스트아크 드럼 노트 매핑
     const NEW_DRUM_MAP = {
       23: 53, 24: 53, 25: 60, 26: 57, 28: 57, 29: 55, 30: 69,
