@@ -34,21 +34,43 @@
         2) 클립보드로 MML을 출력한다.<br>
         3) 위 입력창에 MML을 입력한다.<br>
         4) Convert 버튼을 클릭한다.<br>
-        5) 아래 출력창에 변환된 결과가 표시됩니다.<br>
+        5) 아래 출력창에 변환된 결과가 표시됩니다.<br><br>
+ 
+        <h3><a href="guide\guide.html" target="_blank">가이드 보기</a><h3> <!-- 별도 페이지로 링크 -->
+
+      <h3>
+        이메일로 피드백을 보내 주세요!<br>
+        lostark.sheet@gmail.com
+      </h3>
       </p>
-      <p>
-        <a href="guide\guide.html" target="_blank">가이드 보기</a> <!-- 별도 페이지로 링크 -->
-      </p>
+
     </div>
     <div>
       <label><input type="checkbox" id="removeVCommand"> 세기(v) 제거</label>
       <label><input type="checkbox" id="removeTCommand"> 템포(t) 제거</label>
     </div>
-    <textarea id="inputMML" rows="8" placeholder="여기에 MML을 붙여 넣으세요"></textarea>
+    <textarea id="inputMML" rows="8" placeholder="여기에 MML을 붙여 넣으세요. 쉼표(,)를 통해 구분된 MML의 경우 최대 3개까지 분리되어 출력됩니다."></textarea>
     <button id="convertButton">Convert</button>
-    <textarea id="outputMML" rows="8" readonly placeholder="변환 결과가 여기에 표시됩니다"></textarea>
-    <!-- 클립보드 복사 버튼 -->
-    <button id="copyButton">Copy to Clipboard</button>
+
+
+    <div class="section">
+      <p>멜로디</p>  <!-- 텍스트 박스 위에 표시할 라벨/문구 -->
+      <textarea id="outputMML1" rows="4" readonly ></textarea>
+      <button class="copyButton" data-target="outputMML1">클립보드에 복사</button>
+    </div>
+
+    <div class="section">
+      <p>화음 1</p>  <!-- 텍스트 박스 위에 표시할 라벨/문구 -->
+      <textarea id="outputMML2" rows="4" readonly></textarea>
+      <button class="copyButton" data-target="outputMML2">클립보드에 복사</button>
+    </div>
+
+    <div class="section">
+      <p>화음 2</p>  <!-- 텍스트 박스 위에 표시할 라벨/문구 -->
+      <textarea id="outputMML3" rows="4" readonly></textarea>
+      <button class="copyButton" data-target="outputMML3">클립보드에 복사</button>
+    </div>
+
   </div>
   
   <!-- 외부 JS 파일 로드 (모든 변환 로직 & 이벤트 핸들러) -->

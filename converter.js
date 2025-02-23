@@ -220,7 +220,11 @@ function removeRedundantLMacros(mml) {
  ****************************************************************************/
 document.addEventListener("DOMContentLoaded", function() {
   const inputMML = document.getElementById("inputMML");
-  const outputMML = document.getElementById("outputMML");
+  const outputFields = [
+    document.getElementById("outputMML1"),
+    document.getElementById("outputMML2"),
+    document.getElementById("outputMML3")
+  ];
   const convertButton = document.getElementById("convertButton");
   const copyButton = document.getElementById("copyButton");
   
@@ -241,21 +245,35 @@ document.addEventListener("DOMContentLoaded", function() {
       originalMML = originalMML.replace(/t\d+/gi, "");
     }
     
-    // 변환 로직 실행
-    const converted = convertMmlForLostark(originalMML);
-    const finalResult = removeRedundantLMacros(converted);
-    outputMML.value = finalResult;
+    // 쉼표로 나누고 최대 3개까지만 처리
+    const splitted = originalMML.split(",");
+    for (let i = 0; i < 3; i++) {
+      // splitted[i]가 없으면 빈 문자열
+      let piece = splitted[i] || "";
+      let converted = convertMmlForLostark(piece);
+      let finalResult = removeRedundantLMacros(converted);
+      // 출력창에 표시
+      outputFields[i].value = finalResult;
+    }
   });
 
   // Copy 버튼 클릭 이벤트
-  copyButton.addEventListener("click", function() {
-    const textToCopy = outputMML.value;
-    navigator.clipboard.writeText(textToCopy)
-      .then(() => {
-        alert("클립보드에 복사되었습니다!");
-      })
-      .catch(err => {
-        console.error("복사 실패: ", err);
-      });
+  const copyButtons = document.querySelectorAll(".copyButton");
+  copyButtons.forEach(button => {
+    button.addEventListener("click", function() {
+      // data-target 속성에서 복사할 textarea의 id를 가져옴
+      const targetId = button.getAttribute("data-target");
+      const textArea = document.getElementById(targetId);
+      if (textArea) {
+        const textToCopy = textArea.value;
+        navigator.clipboard.writeText(textToCopy)
+          .then(() => {
+            alert("클립보드에 복사되었습니다!");
+          })
+          .catch(err => {
+            console.error("복사 실패: ", err);
+          });
+      }
+    });
   });
 });
