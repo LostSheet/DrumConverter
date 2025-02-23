@@ -37,6 +37,33 @@ function relativeToAbsolute(octave, note) {
   return absVal;
 }
 
+function handleAbsoluteNote(absNote, lengthVal, dotted) {
+  // absNote: "n30", "n25" 등 (예: n30)
+  // lengthVal, dotted: 파싱된 길이
+  // (수정 전에는 여기서 n30 → n69 매핑을 했지만, 
+  // 이제는 모든 절대음을 "있는 그대로" 유지합니다.)
+
+  // [수정됨] : noteNumber를 매핑하지 않고 그대로 반환
+  return `l${lengthVal}${dotted ? '.' : ''} ${absNote}`;
+}
+
+/****************************************************************************
+ * 2-1) 모든 nXX를 최종적으로 드럼 매핑에 반영하는 함수
+ *      => 마지막에 한 번 더 nXX -> nYY 변환
+ ****************************************************************************/
+function mapAbsoluteNotes(mml) {
+  // n(\d+) 형태를 모두 찾아서, NEW_DRUM_MAP에 있으면 치환
+  return mml.replace(/n(\d+)/g, (match, p1) => {
+    const num = parseInt(p1, 10);
+    const mappedVal = NEW_DRUM_MAP[num];
+    if (mappedVal !== undefined) {
+      return "n" + mappedVal;
+    } else {
+      return match;  // 매핑 실패 시 원본 유지 (ex n999)
+    }
+  });
+}
+
 /****************************************************************************
  * 3) 파싱 유틸 함수
  ****************************************************************************/
@@ -89,7 +116,7 @@ function convertMmlForLostark(mml) {
   const convertedTokens = [];
 
   tokens.forEach(token => {
-    // 옥타브 처리
+    // (A) 옥타브 설정
     if (/^o\d+$/.test(token)) {
       currentOctave = parseInt(token.slice(1), 10);
       return;
@@ -97,7 +124,7 @@ function convertMmlForLostark(mml) {
     if (token === '>') { currentOctave++; return; }
     if (token === '<') { currentOctave--; return; }
 
-    // 길이 매크로
+    // (B) 길이 매크로 lN(.)
     const lengthMacro = parseLengthMacro(token);
     if (lengthMacro) {
       defaultLengthVal = lengthMacro.lengthVal;
@@ -106,18 +133,18 @@ function convertMmlForLostark(mml) {
       return;
     }
 
-    // 붙임표는 그대로 추가
+    // (C) 붙임표
     if (token === '&') {
       convertedTokens.push(token);
       return;
     }
 
-    // 쉼표 처리
+    // (D) 쉼표(r + 길이)
     const restInfo = parseRestLength(token);
     if (restInfo) {
       let lengthVal = restInfo.lengthVal;
       let dotted = restInfo.dotted;
-      if (lengthVal === null) {
+      if (lengthVal == null) {
         lengthVal = defaultLengthVal;
         if (!dotted) dotted = defaultLengthDotted;
       }
@@ -125,45 +152,52 @@ function convertMmlForLostark(mml) {
       return;
     }
 
-    // 절대음 처리
+    // (E) '이미' 절대음(nXX + 길이)
     const absInfo = parseAbsoluteLength(token);
     if (absInfo) {
-      let lengthVal = absInfo.lengthVal;
-      let dotted = absInfo.dotted;
-      if (lengthVal === null) {
+      let { absNote, lengthVal, dotted } = absInfo;
+      if (lengthVal == null) {
         lengthVal = defaultLengthVal;
         if (!dotted) dotted = defaultLengthDotted;
       }
-      convertedTokens.push(`l${lengthVal}${dotted ? '.' : ''} ${absInfo.absNote}`);
+      // [수정됨] 이제 여기서 드럼 매핑하지 않고, 그대로 nXX 유지
+      const replacedStr = handleAbsoluteNote(absNote, lengthVal, dotted);
+      convertedTokens.push(replacedStr);
       return;
     }
 
-    // 상대음 처리
+    // (F) 상대음(c, c-, etc.) → 우선 절대음 nXX로 변환
     const noteInfo = parseNoteLength(token);
     if (noteInfo) {
-      const intermediate = relativeToAbsolute(currentOctave, noteInfo.noteName);
-      let replacedStr;
-      if (intermediate === null) {
-        replacedStr = token;
-      } else {
-        const finalVal = NEW_DRUM_MAP[intermediate];
-        replacedStr = (finalVal === undefined) ? token : `n${finalVal}`;
-      }
+      const { noteName } = noteInfo;
       let lengthVal = noteInfo.lengthVal;
       let dotted = noteInfo.dotted;
-      if (lengthVal === null) {
+      if (lengthVal == null) {
         lengthVal = defaultLengthVal;
         if (!dotted) dotted = defaultLengthDotted;
       }
+
+      // 1) 상대음을 절대 값(예: 30)으로 변환
+      const intermediate = relativeToAbsolute(currentOctave, noteName);
+      let replacedStr;
+      if (intermediate === null) {
+        // 변환 실패 시 원본
+        replacedStr = token;
+      } else {
+        // 절대음 형태 "n30" 등으로 만들어둠
+        replacedStr = `n${intermediate}`;
+      }
+
+      // (예: "l4 n30")
       convertedTokens.push(`l${lengthVal}${dotted ? '.' : ''} ${replacedStr}`);
       return;
     }
 
-    // 그 외 (v, t 등 포함)
+    // (G) 그 외
     convertedTokens.push(token);
   });
 
-  // 붙임표 후처리: & 다음 토큰의 음표를 쉼표로 변경
+  // 붙임표 후처리
   for (let i = 0; i < convertedTokens.length; i++) {
     if (convertedTokens[i] === "&") {
       if (i + 1 < convertedTokens.length) {
@@ -173,10 +207,15 @@ function convertMmlForLostark(mml) {
       }
     }
   }
-  
+
+  // 1차 머지
   let merged = convertedTokens.join(" ");
   merged = merged.replace(/(n\d+)\s+(?=n\d+)/g, '$1 ');
-  return merged;
+
+  // [수정됨] 마지막 단계에서 nXX → nYY 드럼 매핑
+  const finalMapped = mapAbsoluteNotes(merged);
+
+  return finalMapped;
 }
 
 /****************************************************************************
