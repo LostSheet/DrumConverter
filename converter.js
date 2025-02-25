@@ -275,6 +275,8 @@ document.addEventListener("DOMContentLoaded", function() {
   convertButton.addEventListener("click", function() {
     let originalMML = inputMML.value;
     
+    originalMML = originalMML.replace(/\s+/g, "");
+
     // 옵션: v 명령어 제거
     if (removeVCheckbox && removeVCheckbox.checked) {
       originalMML = originalMML.replace(/v\d+/gi, "");
